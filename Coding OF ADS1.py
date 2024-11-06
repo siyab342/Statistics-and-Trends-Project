@@ -1,153 +1,175 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import skew, kurtosis
+from scipy.stats import kurtosis, skew
 
-# Load dataset
-data_path = 'democracy-index-eiu.csv'
-df = pd.read_csv(data_path)
 
-# Data Cleaning
-df_cleaned = df.dropna(subset=['Democracy score'])
-
-# Statistical Analysis
-def calculate_statistics(data):
+def load_dataset(file_path):
     """
-    Calculate and display skewness and kurtosis for the Democracy score column.
-    
+    Load the dataset from a CSV file.
+
     Parameters:
-        data (DataFrame): Cleaned dataset with Democracy score column.
-    
+    file_path (str): Path to the CSV file containing the dataset.
+
     Returns:
-        dict: A dictionary containing skewness and kurtosis of Democracy score.
+    pd.DataFrame: Loaded dataset as a pandas DataFrame.
     """
-    democracy_skewness = skew(data['Democracy score'])
-    democracy_kurtosis = kurtosis(data['Democracy score'])
-    print("Democracy Score Statistical Analysis")
-    print(f"Skewness: {democracy_skewness:.2f}")
-    print(f"Kurtosis: {democracy_kurtosis:.2f}")
-    return {'Skewness': democracy_skewness, 'Kurtosis': democracy_kurtosis}
+    return pd.read_csv(file_path)
 
-# Plot Distribution of Democracy Scores
-def plot_distribution(data):
-    """
-    Plot the histogram of Democracy scores to show distribution.
-    
-    Parameters:
-        data (DataFrame): Cleaned dataset with Democracy score column.
-    """
-    plt.figure(figsize=(10, 6))
-    plt.hist(data['Democracy score'], bins=30, edgecolor='black', color='skyblue')
-    plt.title('Distribution of Democracy Scores (2006-2023)', fontsize=14, fontweight='bold')
-    plt.xlabel('Democracy Score', fontweight='bold')
-    plt.ylabel('Frequency', fontweight='bold')
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.show()
 
-# Plot Trend of Average Democracy Score Over Time
-def plot_yearly_trend(data):
+def statistical_analysis(df):
     """
-    Plot the yearly trend of average Democracy scores over time.
-    
+    Perform statistical analysis on the dataset.
+
     Parameters:
-        data (DataFrame): Cleaned dataset with Year and Democracy score columns.
+    df (pd.DataFrame): The dataset to analyze.
     """
-    yearly_trend = data.groupby('Year')['Democracy score'].mean()
+    print("Basic Statistical Description:\n", df.describe())
+    print("\nCorrelation Matrix:\n", df.corr(numeric_only=True))
+    for column in df.select_dtypes(include=['float64', 'int64']).columns:
+        print(f"\nKurtosis of {column}: {kurtosis(df[column])}")
+        print(f"Skewness of {column}: {skew(df[column])}")
+
+
+def line_chart(df):
+    """
+    Create a line chart showing 5G Network Coverage over the years for each country.
+
+    Parameters:
+    df (pd.DataFrame): The dataset containing columns 'Year', '5G Network Coverage (%)', and 'Country'.
+    """
     plt.figure(figsize=(12, 6))
-    plt.plot(yearly_trend.index, yearly_trend.values, marker='o', linestyle='-', color='b')
-    plt.title('Average Democracy Score Over Time (2006-2023)', fontsize=14, fontweight='bold')
-    plt.xlabel('Year', fontweight='bold')
-    plt.ylabel('Average Democracy Score', fontweight='bold')
-    plt.grid(True)
+    sns.lineplot(data=df, x='Year', y='5G Network Coverage (%)', hue='Country', marker='o', linewidth=2.5)
+    plt.title('5G Network Coverage over the Years for Each Country', fontsize=16, fontweight='bold')
+    plt.xlabel('Year', fontsize=14, fontweight='bold')
+    plt.ylabel('5G Network Coverage (%)', fontsize=14, fontweight='bold')
+    plt.xticks(fontsize=12, fontweight='bold')
+    plt.yticks(fontsize=12, fontweight='bold')
+    plt.legend(title='Country', fontsize=12, title_fontsize=14)
+    plt.tight_layout()
+
+    # Adding annotations for the last data point of each line
+    for country in df['Country'].unique():
+        latest_year = df['Year'].max()
+        latest_value = df[(df['Country'] == country) & (df['Year'] == latest_year)]['5G Network Coverage (%)'].values[0]
+        plt.text(latest_year + 0.1, latest_value, f"{latest_value:.1f}%", fontsize=10, color='black', fontweight='bold')
+
     plt.show()
 
-# Plot Heatmap for High Variance Countries
-def plot_heatmap_high_variance(data):
+
+def bar_chart(df):
     """
-    Plot a heatmap showing Democracy scores over time for high variance countries.
-    
+    Create a bar chart showing the average number of startups by tech sector and compare between countries.
+
     Parameters:
-        data (DataFrame): Cleaned dataset with Entity, Year, and Democracy score columns.
+    df (pd.DataFrame): The dataset containing columns 'Tech Sector', 'Number of Startups', and 'Country'.
+    
+    This chart shows which tech sectors have the highest average number of startups, providing insight into the growth and focus areas of the technology industry for each country.
     """
-    # Ensure we only calculate the standard deviation on the numeric 'Democracy score' column
-    high_variance_countries = (
-        data.groupby('Entity')['Democracy score']
-        .std()
-        .nlargest(10)
-        .index
-    )
+    """
+    Create a bar chart showing the average number of startups by tech sector.
+
+    Parameters:
+    df (pd.DataFrame): The dataset containing columns 'Tech Sector' and 'Number of Startups'.
     
-    subset_data = data[data['Entity'].isin(high_variance_countries)]
-    heatmap_data = subset_data.pivot(index='Entity', columns='Year', values='Democracy score')
-    
-    plt.figure(figsize=(14, 8))
-    sns.heatmap(heatmap_data, annot=True, cmap='coolwarm', fmt=".2f", cbar_kws={'label': 'Democracy Score'})
-    plt.title('Democracy Score Heatmap for High Variance Countries (2006-2023)', fontsize=14, fontweight='bold')
-    plt.xlabel('Year', fontweight='bold')
-    plt.ylabel('Country', fontweight='bold')
+    This chart shows which tech sectors have the highest average number of startups, providing insight into the growth and focus areas of the technology industry.
+    """
+    """
+    Create a bar chart showing the average number of startups by tech sector.
+
+    Parameters:
+    df (pd.DataFrame): The dataset containing columns 'Tech Sector' and 'Number of Startups'.
+    """
+    plt.figure(figsize=(14, 6))
+    avg_startups = df.groupby(['Tech Sector', 'Country'])['Number of Startups'].mean().reset_index()
+    sns.barplot(data=avg_startups, x='Tech Sector', y='Number of Startups', hue='Country', palette='viridis', dodge=True)
+    plt.title('Average Number of Startups by Tech Sector', fontsize=16, fontweight='bold')
+    plt.xlabel('Tech Sector', fontsize=14, fontweight='bold')
+    plt.ylabel('Average Number of Startups', fontsize=14, fontweight='bold')
+    plt.xticks(rotation=45, fontsize=12, fontweight='bold')
+    plt.yticks(fontsize=12, fontweight='bold')
+    plt.tight_layout()
+
+    # Adding annotations on each bar to display values
+    for index, row in avg_startups.iterrows():
+        tech_sector = row['Tech Sector']
+        country = row['Country']
+        num_startups = row['Number of Startups']
+        plt.text(
+            x=index,
+            y=num_startups + 5,
+            s=f'{num_startups:.1f}',
+            ha='center', fontsize=10, color='black', fontweight='bold'
+        )
+
     plt.show()
 
-# Plot Average Democracy Score by Region
-def plot_region_avg_score(data, latest_year):
+
+def heatmap(df):
     """
-    Plot the average democracy score by region for the latest available year.
-    
+    Create a heatmap showing the correlation between key metrics.
+
     Parameters:
-        data (DataFrame): Cleaned dataset with Region, Year, and Democracy score columns.
-        latest_year (int): The latest year to filter the data by.
-    """
-    # Map countries to regions (as per example region mapping)
-    region_mapping = {
-        'United States': 'North America', 'Canada': 'North America',
-        'Brazil': 'South America', 'Germany': 'Europe', 'United Kingdom': 'Europe',
-        'India': 'Asia', 'China': 'Asia', 'South Africa': 'Africa', 'Nigeria': 'Africa',
-    }
-    data['Region'] = data['Entity'].map(region_mapping)
-    recent_data_with_regions = data[(data['Year'] == latest_year) & data['Region'].notnull()]
-    region_avg_scores = recent_data_with_regions.groupby('Region')['Democracy score'].mean().sort_values(ascending=False)
+    df (pd.DataFrame): The dataset containing numerical columns for correlation analysis.
     
-    plt.figure(figsize=(10, 6))
-    region_avg_scores.plot(kind='bar', color='teal', edgecolor='black')
-    plt.title(f'**Average Democracy Score by Region in {latest_year}**', fontsize=14, fontweight='bold')
-    plt.xlabel('Region', fontweight='bold')
-    plt.ylabel('Average Democracy Score', fontweight='bold')
-    plt.xticks(rotation=45)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    for index, value in enumerate(region_avg_scores):
-        plt.text(index, value + 0.1, f"{value:.2f}", ha='center', fontweight='bold')
+    This heatmap helps in identifying the strength and direction of relationships between different numerical metrics, useful for understanding dependencies in the data.
+    """
+    """
+    Create a heatmap showing the correlation between key metrics.
+
+    Parameters:
+    df (pd.DataFrame): The dataset containing numerical columns for correlation analysis.
+    """
+    plt.figure(figsize=(14, 10))
+    correlation_matrix = df.corr(numeric_only=True)
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=1, linecolor='white', annot_kws={"size": 10, "weight": "bold"})
+    plt.title('Correlation Heatmap of Key Metrics', fontsize=18, fontweight='bold')
+    plt.xticks(fontsize=12, fontweight='bold', rotation=45)
+    plt.yticks(fontsize=12, fontweight='bold')
+    plt.tight_layout()
     plt.show()
 
-# Calculate Correlation for Two Specific Countries
-def calculate_correlation_between_countries(data, country1, country2):
+
+def box_plot(df):
     """
-    Calculate and return the correlation of Democracy scores between two specified countries.
-    
+    Create a box plot showing the distribution of venture capital funding by country.
+
     Parameters:
-        data (DataFrame): Cleaned dataset with 'Entity', 'Year', and 'Democracy score' columns.
-        country1 (str): Name of the first country.
-        country2 (str): Name of the second country.
-    
-    Returns:
-        float: Correlation coefficient between the democracy scores of the two countries.
+    df (pd.DataFrame): The dataset containing columns 'Country' and 'Venture Capital Funding (in USD)'.
     """
-    # Filter data for the selected countries
-    country_data = data[data['Entity'].isin([country1, country2])]
-    
-    # Pivot data to have years as index and countries as columns
-    country_pivot = country_data.pivot(index='Year', columns='Entity', values='Democracy score')
-    
-    # Calculate correlation between the two countries' democracy scores
-    correlation = country_pivot[country1].corr(country_pivot[country2])
-    print(f"Correlation between {country1} and {country2}: {correlation:.2f}")
-    return correlation
+    plt.figure(figsize=(12, 6))
+    sns.boxplot(data=df, x='Country', y='Venture Capital Funding (in USD)', palette='Set2')
+    plt.title('Distribution of Venture Capital Funding by Country', fontsize=16, fontweight='bold')
+    plt.xlabel('Country', fontsize=14, fontweight='bold')
+    plt.ylabel('Venture Capital Funding (in USD)', fontsize=14, fontweight='bold')
+    plt.xticks(fontsize=12, fontweight='bold')
+    plt.yticks(fontsize=12, fontweight='bold')
+    plt.tight_layout()
 
-# Running the functions to perform analysis and visualize
-latest_year = df_cleaned['Year'].max()
-stats = calculate_statistics(df_cleaned)
-plot_distribution(df_cleaned)
-plot_yearly_trend(df_cleaned)
-plot_heatmap_high_variance(df_cleaned)
-plot_region_avg_score(df_cleaned, latest_year)
+    # Adding annotations to highlight key insights
+    for i, box in enumerate(df['Country'].unique()):
+        median = df[df['Country'] == box]['Venture Capital Funding (in USD)'].median()
+        plt.annotate(
+            f'Median: ${median:,.0f}',
+            xy=(i, median),
+            xytext=(i, median + 1e9),
+            ha='center', fontsize=10, color='blue', fontweight='bold',
+            arrowprops=dict(facecolor='blue', arrowstyle='->')
+        )
 
-# Example correlation between two specific countries
-calculate_correlation_between_countries(df_cleaned, 'United States', 'Canada')
+    plt.show()
+
+
+if __name__ == "__main__":
+    # Load the dataset
+    dataset_path = 'Big_Japan_vs_China_Technology.csv'
+    df = load_dataset(dataset_path)
+
+    # Perform statistical analysis
+    statistical_analysis(df)
+
+    # Create visualizations
+    line_chart(df)
+    bar_chart(df)
+    heatmap(df)
+    box_plot(df)
